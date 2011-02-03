@@ -20,22 +20,25 @@ module Guard
           cmd_parts = []
           cmd_parts << "rvm #{options[:rvm].join(',')} exec" if options[:rvm].is_a?(Array)
           cmd_parts << "bundle exec" if bundler? && options[:bundler] != false
+          cmd_parts << (rspec_version == 1 ? "spec" : "rspec")
           
-          formatter = options[:formatter] || "default"
           case rspec_version
           when 1
-            cmd_parts << "spec"
-            cmd_parts << "--require #{File.dirname(__FILE__)}/formatters/#{formatter}_spec.rb --format #{formatter.capitalize}Spec"
+            if formatter = options[:formatter]
+              cmd_parts << "--require #{File.dirname(__FILE__)}/formatters/#{formatter}_spec.rb --format #{formatter.capitalize}Spec"
+            end
+  
+            [:rvm, :bundler, :formatter, :version, :message].each{|key| options.delete(key)}
+
+            options.each do |key, value|
+              cmd_parts << "--#{key} #{value.to_s}"
+            end
+
           when 2
-            cmd_parts << "rspec"
             cmd_parts << "--require #{File.dirname(__FILE__)}/formatters/#{formatter}_rspec.rb --format #{formatter.capitalize}RSpec"
           end
-          
-          cmd_parts << "--drb" if options[:drb] == true
-          cmd_parts << "--color" if options[:color] != false
-          cmd_parts << "--fail-fast" if options[:fail_fast] == true
-          
-          cmd_parts << paths.join(' ')
+
+          cmd_parts << paths.join(' ')           
           cmd_parts.join(" ")
         end
         
